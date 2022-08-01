@@ -3,23 +3,23 @@
 #define MACRO_CTRL 0x0100
 #define MACRO_SHIFT 0x0200
 
-constexpr uint8_t R1{8};
-constexpr uint8_t R2{23};
-constexpr uint8_t R3{7};
-constexpr uint8_t R4{6};
+constexpr uint8_t R1{10};
+constexpr uint8_t R2{9};
+constexpr uint8_t R3{8};
+constexpr uint8_t R4{7};
 
-constexpr uint8_t C1{26};
-constexpr uint8_t C2{20};
-constexpr uint8_t C3{19};
-constexpr uint8_t C4{18};
-constexpr uint8_t C5{14};
-constexpr uint8_t C6{15};
+constexpr uint8_t C1{6};
+constexpr uint8_t C2{23};
+constexpr uint8_t C3{22};
+constexpr uint8_t C4{21};
+constexpr uint8_t C5{20};
+constexpr uint8_t C6{19};
 constexpr uint8_t C7{16};
-constexpr uint8_t C8{11};
-constexpr uint8_t C9{10};
-constexpr uint8_t C10{9};
-constexpr uint8_t C11{21};
-constexpr uint8_t C12{22};
+constexpr uint8_t C8{17};
+constexpr uint8_t C9{16};
+constexpr uint8_t C10{13};
+constexpr uint8_t C11{12};
+constexpr uint8_t C12{11};
 
 constexpr int ROW_LEN = 4;
 const uint8_t ROWS[] = {R1, R2, R3, R4};
