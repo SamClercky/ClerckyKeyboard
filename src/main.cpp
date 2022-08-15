@@ -1,7 +1,11 @@
+#include "core_pins.h"
 #include <Arduino.h>
+#include <cstddef>
 
 #define MACRO_CTRL 0x0100
 #define MACRO_SHIFT 0x0200
+
+constexpr uint64_t DEBOUNCE_DELAY{10}; // ms
 
 constexpr uint8_t R1{10};
 constexpr uint8_t R2{9};
@@ -14,7 +18,7 @@ constexpr uint8_t C3{22};
 constexpr uint8_t C4{21};
 constexpr uint8_t C5{20};
 constexpr uint8_t C6{19};
-constexpr uint8_t C7{16};
+constexpr uint8_t C7{18};
 constexpr uint8_t C8{17};
 constexpr uint8_t C9{16};
 constexpr uint8_t C10{13};
@@ -59,6 +63,10 @@ typedef struct _keyboard_state {
 
 KeyBoardState current_state{};
 KeyBoardState prev_state{};
+
+// raw current reading to check debounce status
+uint64_t current_reading{};
+uint64_t lastDebounceTime[4 * 12];
 
 const uint16_t LAYOUTS[4][30] = {
     // 0 layer
@@ -121,7 +129,7 @@ void initPins() {
   }
 }
 
-inline void readState(int row_index, uint32_t column) {
+void readState(int row_index, uint32_t column) {
   // normal keys
   if (row_index < 3) {
     uint32_t column_mask = 0b011111111110;
@@ -155,7 +163,7 @@ inline void readState(int row_index, uint32_t column) {
              ((column & (0b1000 << 4)) != 0) << 1, 0b10);
     SET_MASK(current_state.letters.letter_mod2, (column & (0b0001 << 4)) != 0,
              0b01);
-    current_state.mods.mod_space = (column & (1 << 5)) != 0;
+    current_state.mods.mod_space = (column & (1 << 6)) != 0;
     current_state.mods.mod_alt_r = (column & (1 << 8)) != 0;
     current_state.mods.mod_win_r = (column & (1 << 9)) != 0;
     current_state.mods.mod_compose = (column & (1 << 10)) != 0;
@@ -167,12 +175,32 @@ inline void readState(int row_index, uint32_t column) {
 }
 
 void readRow(int row_index) {
+  const uint64_t currentTime = millis();
+
   digitalWrite(ROWS[row_index], LOW);
   uint32_t column{0};
+
   for (uint8_t column_index = 0; column_index < COLUMN_LEN; column_index++) {
-    uint32_t keyPressed = digitalRead(COLUMNS[column_index]) == LOW;
-    column |= keyPressed << column_index;
-    Serial.printf("%d,", keyPressed);
+    const size_t array_index = row_index * 12 + column_index;
+
+    uint32_t readingKeyPress = digitalRead(COLUMNS[column_index]) == LOW;
+    uint32_t lastKeyState = (current_reading & (1 << array_index)) != 0;
+    uint64_t *lastDebounce = &lastDebounceTime[array_index];
+
+    // check if new state and reset debounce
+    if (readingKeyPress != lastKeyState)
+      *lastDebounce = currentTime;
+
+    // debounce ok -> write to column
+    if ((currentTime - *lastDebounce) > DEBOUNCE_DELAY)
+      column |= readingKeyPress << column_index;
+
+    // remember new state
+    SET_MASK(current_reading, (readingKeyPress << array_index),
+             (1 << array_index));
+
+    Serial.printf("%d (%d: %x, %d),", readingKeyPress, array_index,
+                  lastKeyState, currentTime - *lastDebounce);
   }
   Serial.println();
 
