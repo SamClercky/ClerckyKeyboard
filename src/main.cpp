@@ -5,7 +5,7 @@
 #define MACRO_CTRL 0x0100
 #define MACRO_SHIFT 0x0200
 
-constexpr uint64_t DEBOUNCE_DELAY{10}; // ms
+constexpr uint32_t DEBOUNCE_DELAY{15}; // ms
 
 constexpr uint8_t R1{10};
 constexpr uint8_t R2{9};
@@ -66,7 +66,7 @@ KeyBoardState prev_state{};
 
 // raw current reading to check debounce status
 uint64_t current_reading{};
-uint64_t lastDebounceTime[4 * 12];
+uint32_t lastDebounceTime[4 * 12];
 
 const uint16_t LAYOUTS[4][30] = {
     // 0 layer
@@ -175,17 +175,19 @@ void readState(int row_index, uint32_t column) {
 }
 
 void readRow(int row_index) {
-  const uint64_t currentTime = millis();
+  const uint32_t currentTime = millis();
 
   digitalWrite(ROWS[row_index], LOW);
   uint32_t column{0};
 
   for (uint8_t column_index = 0; column_index < COLUMN_LEN; column_index++) {
-    const size_t array_index = row_index * 12 + column_index;
+    const uint32_t array_index = row_index * 12 + column_index;
 
-    uint32_t readingKeyPress = digitalRead(COLUMNS[column_index]) == LOW;
-    uint32_t lastKeyState = (current_reading & (1 << array_index)) != 0;
-    uint64_t *lastDebounce = &lastDebounceTime[array_index];
+    uint8_t readingKeyPress = digitalRead(COLUMNS[column_index]) == LOW;
+    uint8_t lastKeyState =
+        (uint8_t)((current_reading & ((uint64_t)1 << (uint64_t)array_index)) !=
+                  0);
+    uint32_t *lastDebounce = &lastDebounceTime[array_index];
 
     // check if new state and reset debounce
     if (readingKeyPress != lastKeyState)
@@ -193,11 +195,12 @@ void readRow(int row_index) {
 
     // debounce ok -> write to column
     if ((currentTime - *lastDebounce) > DEBOUNCE_DELAY)
-      column |= readingKeyPress << column_index;
+      column |= (uint32_t)readingKeyPress << (uint32_t)column_index;
 
     // remember new state
-    SET_MASK(current_reading, (readingKeyPress << array_index),
-             (1 << array_index));
+    SET_MASK(current_reading,
+             (uint64_t)((uint64_t)readingKeyPress << (uint64_t)array_index),
+             (uint64_t)((uint64_t)1 << (uint64_t)array_index));
 
     Serial.printf("%d (%d: %x, %d),", readingKeyPress, array_index,
                   lastKeyState, currentTime - *lastDebounce);
