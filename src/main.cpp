@@ -133,9 +133,9 @@ const uint16_t LAYOUTS[4][30] = {
      KEY_B,
      KEY_N,
      KEY_M,
-     KEY_COMMA,
-     KEY_PERIOD,
-     KEY_SLASH},
+     KEY_QUOTE,
+     KEY_LEFT_BRACE,
+     KEY_RIGHT_BRACE},
     // RL layer
     {KEY_Q,
      KEY_W,
@@ -180,6 +180,9 @@ void initPins() {
   }
 }
 
+// Resets keyboard after layer change
+void resetShiftLayer(void) { current_state.letters.letter_keys = 0; }
+
 void readState(int row_index, uint32_t column) {
   // normal keys
   if (row_index < 3) {
@@ -214,6 +217,10 @@ void readState(int row_index, uint32_t column) {
              ((column & (0b1000 << 4)) != 0) << 1, 0b10);
     SET_MASK(current_state.letters.letter_mod2, (column & (0b0001 << 4)) != 0,
              0b01);
+    if ((current_state.letters.letter_mod2 ^ prev_state.letters.letter_mod2) !=
+        0)
+      resetShiftLayer();
+
     current_state.mods.mod_space = (column & (1 << 6)) != 0;
     current_state.mods.mod_alt_r = (column & (1 << 8)) != 0;
     current_state.mods.mod_win_r = (column & (1 << 9)) != 0;
